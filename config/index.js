@@ -45,12 +45,12 @@ const config = {
   h5: {
     publicPath: './',
     staticDirectory: 'static',
-    router: {
-      mode: 'browser',
-      customRoutes: {
-        '/pages/index/index': '/index'
-      }
-    },
+    // router: {
+    //   mode: 'browser',
+    //   customRoutes: {
+    //     '/pages/index/index': '/index'
+    //   }
+    // },
     postcss: {
       autoprefixer: {
         enable: true,
