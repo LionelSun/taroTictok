@@ -47,7 +47,6 @@ const config = {
     staticDirectory: 'static',
     router: {
       mode: 'browser',
-      basename: '/build',
       customRoutes: {
         '/pages/index/index': '/index'
       }
