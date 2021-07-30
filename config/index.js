@@ -49,7 +49,7 @@ const config = {
       mode: 'browser',
       basename: '/build',
       customRoutes: {
-        '/pages/index/index': '/index.html'
+        '/pages/index/index': '/index'
       }
     },
     postcss: {
