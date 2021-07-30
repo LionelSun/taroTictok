@@ -1,14 +1,16 @@
-import { useState, memo } from "react";
+import { useState, memo, useEffect } from "react";
 import { View, Swiper, SwiperItem, Video, Text } from "@tarojs/components";
 import { createVideoContext } from "@tarojs/taro";
-import { AtProgress } from "taro-ui";
+import { AtProgress, AtCurtain } from "taro-ui";
 
-import "taro-ui/dist/style/components/progress.scss"
+import "taro-ui/dist/style/components/progress.scss";
+import "taro-ui/dist/style/components/curtain.scss";
 import "./videoScroll.less";
 
 type propType = {
   dataScore: object[];
   onChange: Function;
+  autoPlayError: Function;
 };
 interface VideoScroll {
   props: propType;
@@ -18,9 +20,10 @@ declare const WeixinJSBridge: any;
 declare const window: Window & { WeixinJSBridge: any; WVJBCallbacks: any };
 
 const VideoScroll = memo((props: propType) => {
-  const [current, setCurrent] = useState<number>(0);
-  const [curtain, setCurtain] = useState<boolean>(false);
-  const [progress, setProgress] = useState<string>('0%')
+  const [current, setCurrent] = useState<number>(0);                  //视频下标
+  const [curtain, setCurtain] = useState<boolean>(false);             //显示幕帘
+  const [paused, setPaused] = useState<boolean>(true);                //当前视频播放状态
+  const [progress, setProgress] = useState<string>("0%");             //当前视频进度跳
 
   const datas = {
     indicatorDots: false,
@@ -29,23 +32,25 @@ const VideoScroll = memo((props: propType) => {
     autoplay: false,
   };
 
+  // useEffect(() => {
+  // }, [current, props.dataScore, getVideoContext]);
+
   /**
    * 视频切换
    * @param event
    * 停止上一个视频播放
    * 播放当前视频
    */
-  const swiperChange = (e) => {
-    console.log("change" + e.detail.current);
-
-    let vCurrent = e.detail.current;
+  const swiperChange = (e: any | undefined) => {
+    let vCurrent = 0;
+    if (e.detail) vCurrent = e.detail.current;
     props.onChange(vCurrent);
     let videoContext = getVideoContext(vCurrent, 1); //当前视频上下文
     //暂停上一条
     if (vCurrent !== 0) {
       let videoContextPrev = getVideoContext(current, 2); //上一个视频上下文
       //停止上一条视频播放/加载
-      if (e.detail.current != current) {
+      if (vCurrent != current) {
         if (process.env.TARO_ENV === "h5") {
           videoContextPrev.pause();
         } else {
@@ -54,12 +59,14 @@ const VideoScroll = memo((props: propType) => {
       }
     }
     //播放
-    setCurrent(vCurrent);
     if (process.env.TARO_ENV === "h5") {
       h5VideoAutoPlay(videoContext);
     } else {
       videoContext.play();
     }
+    setProgress("0%")
+    setCurrent(vCurrent)
+    setPaused(true)
   };
 
   /**
@@ -86,7 +93,7 @@ const VideoScroll = memo((props: propType) => {
   };
 
   /**
-   *
+   * h5环境自动播放
    */
   const h5VideoAutoPlay = (videoContext) => {
     let user = navigator.userAgent.toLowerCase();
@@ -114,20 +121,20 @@ const VideoScroll = memo((props: propType) => {
       }
     }
     videoContext.play();
+    if (videoContext.paused) {
+      setCurtain(true);
+      setPaused(false)
+    }
     //安卓正常情况下无法主动触发播放，应弹出幕帘关闭事件加入点击播放
-    setTimeout(() => {
-      if (videoContext.paused) {
-        setCurtain(true);
-      }
-    }, 300);
+    setTimeout(() => {}, 300);
   };
 
   //视频进度条方法
   const onProgress = (e) => {
     let ps = GetPercent(e.detail.currentTime, e.detail.duration);
-    setProgress(ps)
+    setProgress(ps);
   };
-  
+
   //计算百分比
   const GetPercent = (num, total) => {
     num = parseFloat(num);
@@ -137,54 +144,106 @@ const VideoScroll = memo((props: propType) => {
     }
     return total <= 0 ? "0%" : Math.round((num / total) * 10000) / 100.0 + "%";
   };
- 
+
+  //初始化自动播放
+  const InitPlayFunc = () => {
+    //小程序环境可直接播放视频
+    if (process.env.TARO_ENV !== "h5") {
+      createVideoContext("id0").play();
+    } else {
+      //h5尝试通过微信方法触发(IOS可以播放，安卓失效)
+      setTimeout(() => {
+        let videoContext = getVideoContext(0, 1);
+        if (process.env.TARO_ENV === "h5") {
+          h5VideoAutoPlay(videoContext);
+        }
+      }, 600);
+    }
+    // this.editPlayed()
+  };
+
+  //单击暂停/播放
+  const touchv = () => {
+    let videoContext = getVideoContext(current, 1);
+    if (!paused) {
+      videoContext.play();
+    } else {
+      videoContext.pause();
+    }
+    setPaused(!paused);
+  };
+
+  useEffect(() => {
+    InitPlayFunc();
+  }, []);
+
   return (
-    <Swiper
-      className='videoMain'
-      disableTouch
-      current={current}
-      vertical={datas.vertical}
-      circular={datas.circular}
-      indicatorDots={datas.indicatorDots}
-      onChange={swiperChange}
-      key={props.dataScore.length.toLocaleString()}
-    >
-      {props.dataScore.map((item: any, index: number) => (
-        <SwiperItem key={item.id} className='SwiperItem' id={`swi_${item.id}`}>
-          <View className='videoCtrl'>
-            <View className='info'>
-              <Text className='userName'>@ {item.title}</Text>
-              <Text className='videoTitle'>{item.desc}</Text>
+    <View>
+      <Swiper
+        className='videoMain'
+        disableTouch
+        current={current}
+        vertical={datas.vertical}
+        circular={datas.circular}
+        indicatorDots={datas.indicatorDots}
+        onChange={swiperChange}
+        key={props.dataScore.length.toLocaleString()}
+      >
+        {props.dataScore.map((item: any, index: number) => (
+          <SwiperItem
+            key={item.id}
+            className='SwiperItem'
+            id={`swi_${item.id}`}
+            onClick={touchv}
+          >
+            <View className='videoCtrl'>
+              <View className='info'>
+                <Text className='userName'>@ {item.title}</Text>
+                <Text className='videoTitle'>{item.desc}</Text>
+              </View>
+              <AtProgress
+                percent={parseFloat(progress)}
+                isHidePercent
+                className='TimeUp'
+              />
             </View>
-            <AtProgress percent={parseFloat(progress)} isHidePercent className='TimeUp' />
-          </View>
-          {current === index ||
-          current - index === 1 ||
-          current - index === -1 ? (
-            <Video
-              src={item.vUrl}
-              poster={`${item.vUrl}?vframe/jpg/offset/1`}
-              showCenterPlayBtn={false}
-              showPlayBtn={false}
-              showFullscreenBtn={false}
-              showProgress={false}
-              objectFit='cover'
-              controls
-              loop
-              onTimeUpdate={onProgress}
-              x5-video-player-type='h5-page'
-              webkit-playsinline='true'
-              x5-playsinline='true'
-              x5-video-orientation='portraint'
-              className='video'
-              id={`id${index}`}
-            ></Video>
-          ) : (
-            ""
-          )}
-        </SwiperItem>
-      ))}
-    </Swiper>
+            {current === index ||
+            current - index === 1 ||
+            current - index === -1 ? (
+              <Video
+                src={item.vUrl}
+                poster={`${item.vUrl}?vframe/jpg/offset/1`}
+                showCenterPlayBtn={false}
+                showPlayBtn={false}
+                showFullscreenBtn={false}
+                showProgress={false}
+                objectFit='cover'
+                controls
+                loop
+                onTimeUpdate={onProgress}
+                x5-video-player-type='h5-page'
+                webkit-playsinline='true'
+                x5-playsinline='true'
+                x5-video-orientation='portraint'
+                className='video'
+                id={`id${index}`}
+              ></Video>
+            ) : (
+              ""
+            )}
+          </SwiperItem>
+        ))}
+      </Swiper>
+      <View>
+        <AtCurtain
+          isOpened={curtain}
+          onClose={() => {
+            setCurtain(false);
+            touchv();
+          }}
+        ></AtCurtain>
+      </View>
+    </View>
   );
 });
 
