@@ -43,7 +43,7 @@ const config = {
     }
   },
   h5: {
-    publicPath: '/',
+    publicPath: './',
     staticDirectory: 'static',
     router: {
       mode: 'browser',
