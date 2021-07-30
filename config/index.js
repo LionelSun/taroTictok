@@ -43,7 +43,15 @@ const config = {
     }
   },
   h5: {
-    publicPath: '/',
+    publicPath: './',
+    staticDirectory: 'static',
+    router: {
+      mode: 'browser',
+      basename: '/dist',
+      customRoutes: {
+        '/pages/index/index': '/index',
+      }
+    },
     staticDirectory: 'static',
     postcss: {
       autoprefixer: {
