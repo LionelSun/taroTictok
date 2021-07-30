@@ -10,7 +10,6 @@ import "./videoScroll.less";
 type propType = {
   dataScore: object[];
   onChange: Function;
-  autoPlayError: Function;
 };
 interface VideoScroll {
   props: propType;

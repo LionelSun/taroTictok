@@ -49,10 +49,9 @@ const config = {
       mode: 'browser',
       basename: '/dist',
       customRoutes: {
-        '/pages/index/index': '/index',
+        '/pages/index/index': '/index.html'
       }
     },
-    staticDirectory: 'static',
     postcss: {
       autoprefixer: {
         enable: true,
