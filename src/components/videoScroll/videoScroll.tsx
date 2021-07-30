@@ -47,9 +47,10 @@ const VideoScroll = memo((props: propType) => {
     props.onChange(vCurrent);
     let videoContext = getVideoContext(vCurrent, 1); //当前视频上下文
     //暂停上一条
-    if (vCurrent !== 0) {
+    // if (vCurrent !== 0) {
       let videoContextPrev = getVideoContext(current, 2); //上一个视频上下文
       //停止上一条视频播放/加载
+      console.log(vCurrent , current);
       if (vCurrent != current) {
         if (process.env.TARO_ENV === "h5") {
           videoContextPrev.pause();
@@ -57,7 +58,7 @@ const VideoScroll = memo((props: propType) => {
           videoContextPrev.stop();
         }
       }
-    }
+    // }
     //播放
     if (process.env.TARO_ENV === "h5") {
       h5VideoAutoPlay(videoContext);
